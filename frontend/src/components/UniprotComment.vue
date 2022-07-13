@@ -1,6 +1,7 @@
 <script lang="ts">
 import { SimplifiedComment } from "../api/comments";
-export default {
+import { defineComponent } from "vue";
+export default defineComponent({
     data() {
         let geneList: string = "";
         let taxId: string = "9606";
@@ -10,7 +11,7 @@ export default {
         }
     },
     methods: {
-        async getComment() {
+        async getComment(): Promise<SimplifiedComment> {
             const geneListSplited = this.geneList.split("\n");
             const requestUrl = "https://batch_uniprot_backend.tpob.workers.dev/api/v1";
             const comment: SimplifiedComment = await fetch(requestUrl, {
@@ -26,7 +27,7 @@ export default {
             return comment;
         }
     },
-}
+})
 </script>
 <template>
     <div id="user-input">
