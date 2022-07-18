@@ -38,16 +38,10 @@ async function getJobResult(jobId) {
 		// if result.results is not null
 		if (status.jobStatus == "FINISHED") {
 			const jobResultUrl = `https://rest.uniprot.org/idmapping/uniprotkb/results/stream/${jobId}?format=json`;
-			const resultResp = await fetch(jobResultUrl, {
-				headers: {
-					"Accept-Language": "en-US,en;q=0.9",
-				}
-			});
-			console.log(`response headers: ${JSON.stringify(Object.fromEntries(resultResp.headers))}}`);
+			const resultResp = await fetch(jobResultUrl);
+			console.log(`response headers: ${JSON.stringify(Object.fromEntries(resultResp.headers))}`);
 			const resultText = await resultResp.text();
-			console.log(`resultText: ${resultText}`);
-			const b64ResultText = btoa((resultText));
-			console.log(`${b64ResultText}`);
+			console.log(`response text: ${resultText}`);
 			const resultJson = JSON.parse(resultText);
 			return resultJson.results
 		}
