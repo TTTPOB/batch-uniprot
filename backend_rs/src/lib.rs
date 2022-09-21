@@ -1,5 +1,8 @@
 pub mod uniprot_proxy {
     use super::uniprot::idmapping;
+    use axum::http::HeaderMap;
+    use axum::response::IntoResponse;
+    use log::debug;
     use serde_derive::Deserialize;
     use serde_derive::Serialize;
     use std::error::Error;
@@ -13,16 +16,33 @@ pub mod uniprot_proxy {
         pub to: Option<String>,
     }
 
-    pub async fn make_query(q: &Query) -> Result<String, Box<dyn Error>> {
+    pub async fn make_query(q: &Query) -> Result<impl IntoResponse, Box<dyn Error>> {
+        println!("get request");
+        debug!("get request");
         let query = idmapping::Query::from(q);
         let query_result = idmapping::idmapping_wrapper(&query).await.unwrap();
-        Ok(query_result)
+        let headers = query_result.headers().clone();
+        let mut new_header = HeaderMap::new();
+        for (k, v) in headers.iter() {
+            // for header key start with x or X, append to new header
+            match k.as_str().chars().next() {
+                Some('x') | Some('X') => {
+                    new_header.append(k.clone(), v.clone());
+                }
+                _ => {}
+            }
+        }
+        let resp_bytes = query_result.bytes().await.unwrap();
+        debug!("Headers: {:?}", headers);
+        debug!("Response: {:?}", resp_bytes);
+        Ok((new_header, resp_bytes))
     }
 }
 
 pub mod uniprot {
     pub mod idmapping {
         use reqwest;
+        use reqwest::Response;
         use serde_derive::Deserialize;
         use serde_derive::Serialize;
 
@@ -100,9 +120,9 @@ pub mod uniprot {
             Ok(res)
         }
 
-        async fn get_query_result(job_id: &JobId) -> Result<String, reqwest::Error> {
+        async fn get_query_result(job_id: &JobId) -> Result<Response, reqwest::Error> {
             let client = reqwest::Client::new();
-            let res: String = client
+            let res = client
                 .get(
                     BASE_URL.to_string()
                         + "/uniprotkb/results/"
@@ -110,8 +130,6 @@ pub mod uniprot {
                         + "?compressed=false&format=json",
                 )
                 .send()
-                .await?
-                .text()
                 .await?;
             Ok(res)
         }
@@ -119,7 +137,7 @@ pub mod uniprot {
         async fn wait_till_job_done_and_get_result(
             job_id: &JobId,
             timeout: i32,
-        ) -> Result<String, reqwest::Error> {
+        ) -> Result<Response, reqwest::Error> {
             let mut job_status = get_job_result(job_id).await?;
             for _ in 0..timeout {
                 if job_status.job_status == "FINISHED" {
@@ -131,7 +149,7 @@ pub mod uniprot {
             panic!("Job timeout");
         }
 
-        pub async fn idmapping_wrapper(q: &Query) -> Result<String, Box<dyn std::error::Error>> {
+        pub async fn idmapping_wrapper(q: &Query) -> Result<Response, Box<dyn std::error::Error>> {
             let job_id = submit_job(q.clone()).await?;
             let query_result = wait_till_job_done_and_get_result(&job_id, 10).await?;
             Ok(query_result)
@@ -141,7 +159,6 @@ pub mod uniprot {
             use super::*;
             use serde_json;
             use std::fs;
-            use tokio_test;
 
             fn setup_query() -> Query {
                 let q_json = fs::read_to_string("fixtures/query.json").unwrap();
@@ -170,10 +187,9 @@ pub mod uniprot {
             async fn test_whole_query() {
                 let q = setup_query();
                 let job_id = submit_job(q).await.unwrap();
-                let query_result = wait_till_job_done_and_get_result(&job_id, 30)
+                let _query_result = wait_till_job_done_and_get_result(&job_id, 30)
                     .await
                     .unwrap();
-                println!("{}", query_result);
             }
         }
     }
