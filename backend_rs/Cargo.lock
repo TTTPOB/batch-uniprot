@@ -156,6 +156,8 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-test",
+ "tower",
+ "tower-http",
 ]
 
 [[package]]
@@ -1049,6 +1051,7 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c530c8675c1dbf98facee631536fa116b5fb6382d7dd6dc1b118d970eafe3ba"
 dependencies = [
+ "async-compression",
  "bitflags",
  "bytes",
  "futures-core",
@@ -1057,6 +1060,8 @@ dependencies = [
  "http-body",
  "http-range-header",
  "pin-project-lite",
+ "tokio",
+ "tokio-util",
  "tower",
  "tower-layer",
  "tower-service",
