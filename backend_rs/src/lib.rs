@@ -20,7 +20,7 @@ pub mod uniprot_proxy {
         println!("get request");
         debug!("get request");
         let query = idmapping::Query::from(q);
-        let query_result = idmapping::idmapping_wrapper(&query).await.unwrap();
+        let query_result = idmapping::idmapping_wrapper(&query).await?;
         let headers = query_result.headers().clone();
         let mut new_header = HeaderMap::new();
         for (k, v) in headers.iter() {
@@ -32,7 +32,7 @@ pub mod uniprot_proxy {
                 _ => {}
             }
         }
-        let resp_bytes = query_result.bytes().await.unwrap();
+        let resp_bytes = query_result.bytes().await?;
         debug!("Headers: {:?}", headers);
         debug!("Response: {:?}", resp_bytes);
         Ok((new_header, resp_bytes))
@@ -141,7 +141,7 @@ pub mod uniprot {
             let mut job_status = get_job_result(job_id).await?;
             for _ in 0..timeout {
                 if job_status.job_status == "FINISHED" {
-                    return Ok(get_query_result(job_id).await.unwrap());
+                    return Ok(get_query_result(job_id).await?);
                 }
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                 job_status = get_job_result(job_id).await?;
